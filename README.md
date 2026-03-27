@@ -167,22 +167,6 @@ http://localhost/bookmyshow-clone/
 
 ---
 
-## 📸 Screenshots
-
-> *(Add screenshots of your homepage, movie listing, seat selection, and admin panel here)*
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome! For major changes, please open an issue first.
-
----
-
-## 📄 License
-
-This project is for **educational purposes** only and is not affiliated with BookMyShow.
-
 ---
 
 <div align="center">
