@@ -155,18 +155,6 @@ http://localhost/bookmyshow-clone/
 
 ---
 
-## 🔐 Default Credentials
-
-| Role | URL | Email | Password |
-|------|-----|-------|----------|
-| Admin | `/admin-dashboard.php` | `admin@bookyourshow.com` | `admin123` |
-| Operator | `/operator-login.php` | *(Register a new account)* | — |
-| User | `/login.php` | *(Register a new account)* | — |
-
-> ⚠️ Change the admin password after first login!
-
----
-
 ---
 
 <div align="center">
