@@ -78,8 +78,7 @@ bookmyshow-clone/
 ├── css/
 │   └── style.css           # Global styles (dark theme)
 ├── database/
-│   ├── bookmyshow.sql      # Main database schema + seed data
-│   └── migration_v2.sql    # Additional migrations
+│   └── bookmyshow.sql      # Main database schema + seed data
 ├── includes/
 │   ├── header.php
 │   ├── footer.php
@@ -129,7 +128,6 @@ Place the folder inside: C:/xampp/htdocs/bookmyshow-clone/
 - Open [phpMyAdmin](http://localhost/phpmyadmin)
 - Create a new database: `bookmyshow_clone`
 - Import `database/bookmyshow.sql`
-- Then import `database/migration_v2.sql`
 
 **4. Configure the app**
 

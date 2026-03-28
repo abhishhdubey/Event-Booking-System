@@ -7,7 +7,9 @@ if (isset($_SESSION['operator_id'])) { header('Location: operator-dashboard.php'
 if (isset($_SESSION['admin_id']))    { header('Location: admin-dashboard.php'); exit; }
 if (isset($_SESSION['user_id']))     { header('Location: index.php'); exit; }
 
-$cities = ['Mumbai','Delhi','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Chandigarh','Surat','Kochi'];
+require_once 'config/cities.php';
+$regCities = BYS_CITIES; // Fixed 50 cities — separate from header's dynamic $cities
+
 $error = '';
 $success = '';
 
@@ -89,7 +91,7 @@ include 'includes/header.php';
                 <label class="form-label">Primary City *</label>
                 <select class="form-control" name="city" required>
                     <option value="">-- Select Your City --</option>
-                    <?php foreach($cities as $c): ?>
+                    <?php foreach($regCities as $c): ?>
                     <option value="<?php echo $c; ?>" <?php echo (($_POST['city'] ?? '') === $c) ? 'selected' : ''; ?>><?php echo $c; ?></option>
                     <?php endforeach; ?>
                 </select>

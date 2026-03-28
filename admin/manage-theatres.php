@@ -1,5 +1,6 @@
 <?php
 require_once 'admin-helper.php';
+require_once '../config/cities.php';
 
 $msg = '';
 
@@ -33,7 +34,7 @@ echo $msg;
             <div class="form-group"><label class="form-label">City *</label>
                 <select class="form-control" name="city" required>
                     <option value="">-- Select City --</option>
-                    <?php foreach(['Mumbai','Delhi','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Chandigarh','Surat','Kochi'] as $c): ?>
+                    <?php foreach(BYS_CITIES as $c): ?>
                     <option value="<?php echo $c; ?>"><?php echo $c; ?></option>
                     <?php endforeach; ?>
                 </select>

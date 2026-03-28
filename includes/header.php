@@ -23,7 +23,26 @@ if (isset($_SESSION['user_name']) && $_SESSION['user_name']) {
     }
 }
 
-$cities = ['Mumbai','Delhi','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Jaipur'];
+// ---- Dynamic cities: only cities with active shows OR approved events ----
+$_active_cities = [];
+$_city_res = $conn->query(
+    "SELECT DISTINCT t.city FROM shows s
+     JOIN theatres t ON s.theatre_id = t.theatre_id
+     WHERE s.status = 'active' AND s.show_date >= CURDATE()
+     UNION
+     SELECT DISTINCT city FROM events
+     WHERE status = 'approved' AND event_date >= CURDATE()
+     ORDER BY city ASC"
+);
+if ($_city_res) {
+    while ($_cr = $_city_res->fetch_assoc()) {
+        if (!empty($_cr['city'])) $_active_cities[] = $_cr['city'];
+    }
+}
+// Remove duplicates and sort
+$_active_cities = array_values(array_unique($_active_cities));
+sort($_active_cities);
+$cities = $_active_cities;
 ?>
 <!DOCTYPE html>
 <html lang="en">

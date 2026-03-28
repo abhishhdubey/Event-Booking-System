@@ -109,7 +109,7 @@ include 'includes/header.php';
             </select>
             <select name="city">
                 <option value="">All Cities</option>
-                <?php foreach(['Mumbai','Delhi','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Jaipur'] as $c): ?>
+                <?php foreach($cities as $c): ?>
                 <option value="<?php echo $c; ?>" <?php echo ($selectedCity === $c) ? 'selected' : ''; ?>><?php echo $c; ?></option>
                 <?php endforeach; ?>
             </select>

@@ -8,20 +8,9 @@ set_no_cache_headers();
 $op_id = (int)$_SESSION['operator_id'];
 $msg   = '';
 $tab   = $_GET['tab'] ?? 'shows';
-$cities = [
-    'Mumbai','Delhi','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Chandigarh',
-    'Surat','Kochi','Lucknow','Kanpur','Nagpur','Indore','Thane','Bhopal','Visakhapatnam','Pimpri-Chinchwad',
-    'Patna','Vadodara','Ghaziabad','Ludhiana','Agra','Nashik','Faridabad','Meerut','Rajkot','Kalyan-Dombivli',
-    'Vasai-Virar','Varanasi','Srinagar','Aurangabad','Dhanbad','Amritsar','Navi Mumbai','Allahabad','Howrah','Ranchi',
-    'Gwalior','Jabalpur','Coimbatore','Vijayawada','Jodhpur','Madurai','Raipur','Kota','Guwahati',
-    'Solapur','Hubli-Dharwad','Bareilly','Moradabad','Mysore','Gurgaon','Aligarh','Jalandhar','Tiruchirappalli','Bhubaneswar',
-    'Salem','Mira-Bhayandar','Warangal','Thiruvananthapuram','Bhiwandi','Saharanpur','Guntur','Amravati','Bikaner','Noida',
-    'Jamshedpur','Bhilai','Cuttack','Firozabad','Nellore','Bhavnagar','Dehradun','Durgapur','Asansol',
-    'Rourkela','Nanded','Kolhapur','Ajmer','Akola','Gulbarga','Jamnagar','Ujjain','Loni','Siliguri',
-    'Jhansi','Ulhasnagar','Jammu','Sangli-Miraj & Kupwad','Mangalore','Erode','Belgaum','Ambattur','Tirunelveli',
-    'Malegaon','Gaya','Jalgaon','Udaipur','Maheshtala','Davanagere','Kozhikode','Kurnool','Rajpur Sonarpur','Rajahmundry'
-];
-sort($cities);
+require_once 'config/cities.php';
+$dashCities = BYS_CITIES; // Fixed 50 cities for all dashboard dropdowns
+
 
 // ── Upload helper ───────────────────────────────────────────────────────────
 function uploadImg($field, $dir, $pfx) {
@@ -240,6 +229,9 @@ $showCnt     = $conn->query("SELECT COUNT(*) c FROM shows WHERE operator_id=$op_
 
 $movies_arr=[]; $movies->data_seek(0); while($m=$movies->fetch_assoc()) $movies_arr[]=$m;
 $theatres_arr=[]; $theatres->data_seek(0); while($t=$theatres->fetch_assoc()) $theatres_arr[]=$t;
+// Cities that actually have at least one theatre in DB
+$theatreCities = array_values(array_unique(array_column($theatres_arr, 'city')));
+sort($theatreCities);
 
 // Build licence map: theatre_id => status (for JS)
 $licenceMap = [];
@@ -281,6 +273,14 @@ include 'includes/header.php';
 .lic-approved{background:rgba(34,197,94,.12);color:#22c55e;padding:3px 10px;border-radius:50px;font-size:.75rem;font-weight:700;}
 .lic-pending{background:rgba(245,158,11,.12);color:#f59e0b;padding:3px 10px;border-radius:50px;font-size:.75rem;font-weight:700;}
 .lic-rejected{background:rgba(239,68,68,.12);color:#ef4444;padding:3px 10px;border-radius:50px;font-size:.75rem;font-weight:700;}
+/* City filter disabled overlay */
+#cityFilterGroup.city-disabled{position:relative;pointer-events:none;}
+#cityFilterGroup.city-disabled::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.35);border-radius:8px;z-index:2;}
+.city-disabled-banner{display:none;margin-top:8px;font-size:.8rem;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:6px 10px;}
+.city-disabled-banner.show{display:block;}
+/* Custom city highlight when active */
+#ctCity.city-active-highlight, #ctCity.city-active-highlight + .select2-container .select2-selection{border-color:#f59e0b !important;box-shadow:0 0 0 2px rgba(245,158,11,.25) !important;}
+.ct-city-label-active{color:#f59e0b !important;font-weight:700;}
 </style>
 
 <div style="max-width:1200px;margin:0 auto;padding:40px 20px;">
@@ -320,7 +320,7 @@ include 'includes/header.php';
             </div>
             <div class="form-row">
                 <div class="form-group"><label class="form-label">City *</label>
-                    <select class="form-control select2-city" name="event_city" required><option value="">Select City</option><?php foreach($cities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?></select>
+                    <select class="form-control select2-city" name="event_city" required><option value="">Select City</option><?php foreach($dashCities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?></select>
                 </div>
                 <div class="form-group"><label class="form-label">Ticket Price (₹) *</label><input type="number" class="form-control" name="ticket_price" min="1" step="0.01" required></div>
             </div>
@@ -396,13 +396,19 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <!-- City filter -->
-                <div class="form-group">
-                    <label class="form-label">📍 City</label>
-                    <select class="form-control select2-city" id="cityFilter">
-                        <option value="">-- All Cities --</option>
-                        <?php foreach($cities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?>
-                    </select>
+                <!-- City filter — searchable picker -->
+                <div class="form-group" id="cityFilterGroup">
+                    <label class="form-label" id="cityFilterLabel">🏙️ City</label>
+                    <div class="theatre-picker" id="cityPickerWrapper">
+                        <input type="text" class="theatre-search-input" id="citySearchInput"
+                               placeholder="🔍 All Cities — type to search..."
+                               autocomplete="off"
+                               oninput="filterCityOpts(this.value)"
+                               onclick="openCityDD()">
+                        <input type="hidden" id="cityFilter" value="">
+                        <div class="theatre-dropdown" id="cityDropdown"></div>
+                    </div>
+                    <div class="city-disabled-banner" id="cityFilterDisabledNote">🚫 Disabled — city is set in the <strong>Add Custom Theatre</strong> section below.</div>
                 </div>
             </div>
 
@@ -421,18 +427,28 @@ include 'includes/header.php';
 
             <!-- Custom theatre inline form -->
             <div class="custom-theatre-box" id="customTheatreBox">
-                <h5 style="color:var(--primary);margin-bottom:14px;">🏗️ Add Custom Theatre</h5>
+                <h5 style="color:var(--primary);margin-bottom:14px;">🏗️ Add New Theatre</h5>
                 <div class="form-row">
-                    <div class="form-group"><label class="form-label">Theatre Name *</label><input type="text" class="form-control" name="custom_theatre_name" id="ctName" placeholder='e.g. Dubey&apos;s Cinema'></div>
-                    <div class="form-group"><label class="form-label">City *</label>
-                        <select class="form-control select2-city" name="custom_theatre_city" id="ctCity"><option value="">-- Select City --</option><?php foreach($cities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?></select>
+                    <div class="form-group"><label class="form-label">Theatre Name *</label><input type="text" class="form-control" name="custom_theatre_name" id="ctName" placeholder='e.g. PVR Cinemas, INOX'></div>
+                    <!-- City row: shown only when no city is pre-selected from filter -->
+                    <div class="form-group" id="ctCityRow">
+                        <label class="form-label" id="ctCityLabel">🏙️ City * <small style="color:var(--text-muted);font-weight:400;">(required)</small></label>
+                        <select class="form-control select2-city" name="custom_theatre_city" id="ctCity"><option value="">-- Select City --</option><?php foreach($dashCities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?></select>
+                        <div style="margin-top:5px;font-size:.78rem;color:#22c55e;">✅ New city? It will appear in the user panel once your show goes live.</div>
+                    </div>
+                    <!-- City locked display: shown when city pre-selected from filter -->
+                    <div class="form-group" id="ctCityLockedRow" style="display:none;">
+                        <label class="form-label">🏙️ City <small style="color:var(--text-muted);font-weight:400;">(from filter above)</small></label>
+                        <div id="ctCityLockedDisplay" style="padding:10px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:8px;color:#f59e0b;font-weight:600;font-size:.9rem;">—</div>
+                        <input type="hidden" name="custom_theatre_city" id="ctCityHidden" value="">
+                        <div style="margin-top:5px;font-size:.78rem;color:var(--text-muted);">📍 City locked to your selection above. Change the city filter to pick a different city.</div>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label class="form-label">Full Address</label><input type="text" class="form-control" name="custom_theatre_address" placeholder="Area, locality, city"></div>
                     <div class="form-group"><label class="form-label">🗺️ Google Maps Link</label><input type="url" class="form-control" name="custom_theatre_map" placeholder="https://maps.google.com/..."></div>
                 </div>
-                <p style="font-size:.82rem;color:#f59e0b;margin-top:4px;">⚠️ After adding, you must provide a licence number below. Shows go live after admin approves the licence.</p>
+                <p style="font-size:.82rem;color:#f59e0b;margin-top:4px;">⚠️ After adding, provide a licence number below. Shows go live after admin approves the licence.</p>
             </div>
 
             <!-- Licence field (shown conditionally) -->
@@ -605,7 +621,7 @@ include 'includes/header.php';
                 <div class="form-group"><label class="form-label">City *</label>
                     <select class="form-control" name="edit_event_city" id="editEvCity" required>
                         <option value="">Select City</option>
-                        <?php foreach($cities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?>
+                        <?php foreach($dashCities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?>
                     </select>
                 </div>
                 <div class="form-group"><label class="form-label">Ticket Price (₹) *</label><input type="number" class="form-control" name="edit_ticket_price" id="editEvPrice" min="1" step="0.01" required></div>
@@ -635,6 +651,7 @@ include 'includes/header.php';
 var allTheatres = <?php echo json_encode($theatres_arr); ?>;
 var licenceMap  = <?php echo json_encode($licenceMap); ?>; // {theatre_id: status}
 var opCity      = '<?php echo htmlspecialchars($_SESSION['operator_city'] ?? ''); ?>';
+var allCities   = <?php echo json_encode($dashCities); ?>; // all 50 cities
 
 function openMediaModal(id, name) {
     document.getElementById('mediaEventId').value = id;
@@ -710,6 +727,12 @@ function switchTab(tab, btn) {
 function filterTheatres() {
     var city = document.getElementById('cityFilter').value;
     filteredTheatres = allTheatres.filter(t => !city || t.city === city);
+    // Reset any open custom theatre form or selection
+    document.getElementById('theatreSearchInput').value = '';
+    document.getElementById('theatreIdInput').value = '';
+    document.getElementById('selectedTheatreInfo').style.display = 'none';
+    document.getElementById('customTheatreBox').classList.remove('show');
+    hideAllBoxes();
     renderDropdown('');
 }
 
@@ -730,20 +753,33 @@ function filterTheatreOpts(q) {
 
 function renderDropdown(q) {
     var dd = document.getElementById('theatreDropdown');
+    var selectedCity = document.getElementById('cityFilter').value;
     q = q.toLowerCase();
     var html = '';
-    filteredTheatres.forEach(function(t) {
-        if (q && !t.theatre_name.toLowerCase().includes(q) && !t.city.toLowerCase().includes(q)) return;
-        var ls = licenceMap[t.theatre_id];
-        var tag = '';
-        if      (ls === 'approved') tag = '<span class="lic-tag lic-approved">✅ Licence OK</span>';
-        else if (ls === 'pending')  tag = '<span class="lic-tag lic-pending">⏳ Pending</span>';
-        else if (ls === 'rejected') tag = '<span class="lic-tag lic-rejected">❌ Rejected</span>';
-        else                        tag = '<span class="lic-tag" style="color:var(--text-muted);font-size:.72rem;">⚠️ Needs Licence</span>';
-        html += '<div class="theatre-opt" onclick="selectTheatre('+t.theatre_id+',\''+escQ(t.theatre_name)+'\',\''+escQ(t.city)+'\',\''+ls+'\')">'
-              + '<span>' + escH(t.theatre_name) + ' <span style="color:var(--text-muted);font-size:.8rem;">— ' + escH(t.city) + '</span></span>' + tag + '</div>';
+    // ── Add New Theatre always at TOP ──
+    var addLabel = selectedCity ? '➕ Add New Theatre in ' + escH(selectedCity) : '➕ Add New Theatre (pick city below)';
+    html += '<div class="theatre-opt custom-opt" onclick="selectCustomTheatre()">' + addLabel + '</div>';
+    var matches = filteredTheatres.filter(function(t) {
+        return !q || t.theatre_name.toLowerCase().includes(q) || t.city.toLowerCase().includes(q);
     });
-    html += '<div class="theatre-opt custom-opt" onclick="selectCustomTheatre()">➕ Add New Custom Theatre</div>';
+    if (matches.length === 0 && selectedCity) {
+        // No theatres in selected city
+        html += '<div class="theatre-opt" style="color:var(--text-muted);cursor:default;justify-content:center;flex-direction:column;gap:4px;text-align:center;padding:16px 14px;">'
+              + '<span style="font-size:1.3rem;">📭</span>'
+              + '<span style="font-size:.85rem;">No theatres in <strong style="color:var(--text);">' + escH(selectedCity) + '</strong> yet.</span>'
+              + '</div>';
+    } else {
+        matches.forEach(function(t) {
+            var ls = licenceMap[t.theatre_id];
+            var tag = '';
+            if      (ls === 'approved') tag = '<span class="lic-tag lic-approved">✅ Licence OK</span>';
+            else if (ls === 'pending')  tag = '<span class="lic-tag lic-pending">⏳ Pending</span>';
+            else if (ls === 'rejected') tag = '<span class="lic-tag lic-rejected">❌ Rejected</span>';
+            else                        tag = '<span class="lic-tag" style="color:var(--text-muted);font-size:.72rem;">⚠️ Needs Licence</span>';
+            html += '<div class="theatre-opt" onclick="selectTheatre('+t.theatre_id+',\''+escQ(t.theatre_name)+'\',\''+escQ(t.city)+'\',\''+ls+'\')">'
+                  + '<span>' + escH(t.theatre_name) + ' <span style="color:var(--text-muted);font-size:.8rem;">— ' + escH(t.city) + '</span></span>' + tag + '</div>';
+        });
+    }
     dd.innerHTML = html;
 }
 
@@ -791,7 +827,9 @@ function selectTheatre(id, name, city, licStatus) {
 }
 
 function selectCustomTheatre() {
-    document.getElementById('theatreSearchInput').value = '';
+    var selectedCity = document.getElementById('cityFilter').value;
+    var label = selectedCity ? '➕ Adding theatre in ' + selectedCity : '➕ Add New Theatre';
+    document.getElementById('theatreSearchInput').value = label;
     document.getElementById('theatreIdInput').value = '0';  // 0 = custom
     document.getElementById('theatreDropdown').classList.remove('open');
     hideAllBoxes();
@@ -801,22 +839,102 @@ function selectCustomTheatre() {
     document.getElementById('licenceStatus').style.display='block';
     document.getElementById('licenceStatus').style.background='rgba(248,68,100,.08)';
     document.getElementById('licenceStatus').style.border='1px solid rgba(248,68,100,.2)';
-    document.getElementById('licenceStatus').innerHTML='ℹ️ New custom theatre — fill details and enter licence number. Admin will review both.';
+    document.getElementById('licenceStatus').innerHTML='ℹ️ New theatre — fill in the name, address and licence number below. Admin will review and approve.';
     document.getElementById('selectedTheatreInfo').style.display='none';
+
+    if (selectedCity) {
+        // City already known from filter — lock it, hide picker, strip its name so only hidden submits
+        document.getElementById('ctCityRow').style.display = 'none';
+        document.getElementById('ctCity').removeAttribute('required');
+        document.getElementById('ctCity').removeAttribute('name'); // prevent duplicate POST field
+        document.getElementById('ctCity').value = '';
+        document.getElementById('ctCityLockedRow').style.display = '';
+        document.getElementById('ctCityLockedDisplay').textContent = '📍 ' + selectedCity;
+        document.getElementById('ctCityHidden').value = selectedCity;
+        document.getElementById('cityFilterDisabledNote').classList.remove('show');
+        document.getElementById('cityFilterGroup').classList.remove('city-disabled');
+    } else {
+        // No city pre-selected — show the city picker in the form, restore its name
+        document.getElementById('ctCityRow').style.display = '';
+        document.getElementById('ctCity').setAttribute('name', 'custom_theatre_city');
+        document.getElementById('ctCity').setAttribute('required', 'required');
+        document.getElementById('ctCityLockedRow').style.display = 'none';
+        document.getElementById('ctCityHidden').value = '';
+        // Disable top filter since city comes from custom form
+        var si = document.getElementById('citySearchInput');
+        si.disabled = true;
+        si.style.opacity = '0.4';
+        document.getElementById('cityFilterDisabledNote').classList.add('show');
+        document.getElementById('cityFilterGroup').classList.add('city-disabled');
+    }
 }
 
 function hideAllBoxes() {
     document.getElementById('licenceBox').classList.remove('show');
     document.getElementById('licenceStatus').style.display='none';
     document.getElementById('licenceInput').required = false;
+    // Re-enable top city filter whenever boxes reset
+    enableCityFilter();
 }
 
-// Close dropdown on outside click
+function enableCityFilter() {
+    var si = document.getElementById('citySearchInput');
+    si.disabled = false;
+    si.style.opacity = '';
+    document.getElementById('cityFilterDisabledNote').classList.remove('show');
+    document.getElementById('cityFilterGroup').classList.remove('city-disabled');
+    // Reset custom theatre city state — restore select name & visibility
+    document.getElementById('ctCity').setAttribute('name', 'custom_theatre_city');
+    document.getElementById('ctCityRow').style.display = '';
+    document.getElementById('ctCityLockedRow').style.display = 'none';
+    document.getElementById('ctCityHidden').value = '';
+}
+
+// Close dropdowns on outside click
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.theatre-picker')) {
         document.getElementById('theatreDropdown').classList.remove('open');
+        document.getElementById('cityDropdown').classList.remove('open');
     }
 });
+
+// ── City picker functions ────────────────────────────────────────────────────
+function openCityDD() {
+    renderCityDropdown(document.getElementById('citySearchInput').value);
+    document.getElementById('cityDropdown').classList.add('open');
+}
+
+function filterCityOpts(q) {
+    document.getElementById('cityDropdown').classList.add('open');
+    renderCityDropdown(q);
+}
+
+function renderCityDropdown(q) {
+    var dd = document.getElementById('cityDropdown');
+    q = (q || '').toLowerCase().trim();
+    var filtered = allCities.filter(function(c) {
+        return !q || c.toLowerCase().includes(q);
+    });
+    var html = '';
+    // "All Cities" option always first
+    html += '<div class="theatre-opt" style="color:var(--primary);font-weight:600;" onclick="selectCity(\'\', \'All Cities\')">🌐 All Cities</div>';
+    if (filtered.length === 0) {
+        html += '<div class="theatre-opt" style="color:var(--text-muted);cursor:default;justify-content:center;">No cities match "' + escH(q) + '"</div>';
+    } else {
+        filtered.forEach(function(c) {
+            html += '<div class="theatre-opt" onclick="selectCity(\'' + escQ(c) + '\', \'' + escQ(c) + '\')">' + escH(c) + '</div>';
+        });
+    }
+    dd.innerHTML = html;
+}
+
+function selectCity(value, label) {
+    document.getElementById('cityFilter').value = value;
+    document.getElementById('citySearchInput').value = value ? label : '';
+    document.getElementById('citySearchInput').placeholder = value ? '' : '🔍 All Cities — type to search...';
+    document.getElementById('cityDropdown').classList.remove('open');
+    filterTheatres();
+}
 
 function escQ(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function escH(s) { var d=document.createElement('div');d.textContent=s;return d.innerHTML; }
@@ -872,17 +990,17 @@ function filterShows(){
 
 // ── Init ────────────────────────────────────────────────────────────────────
 (function(){
-    if(opCity){var cf=document.getElementById('cityFilter'); if(cf){cf.value=opCity;filterTheatres();}}
+    if (opCity) {
+        selectCity(opCity, opCity); // pre-select operator's city
+    }
     renderDropdown('');
+    renderCityDropdown('');
 })();
 $(document).ready(function() {
     $('.select2-city').select2({
-        placeholder: "🔍 Search city...",
+        placeholder: '🔍 Search city...',
         width: '100%'
     });
-    // Link cityFilter dropdown to filterTheatres via select2 event
-    $('#cityFilter').on('select2:select', function(e) { filterTheatres(); });
-    $('#cityFilter').on('select2:unselect', function(e) { $('#cityFilter').val(''); filterTheatres(); });
 });
 </script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />

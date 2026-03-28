@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'config/config.php';
+require_once 'config/cities.php';
 
 if (isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -36,8 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'An account with this email already exists.';
         } else {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO users (name, email, phone, password) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param('ssss', $name, $email, $phone, $hashed);
+            $city_reg = $conn->real_escape_string(trim($_POST['city'] ?? ''));
+            // Add city column if not exists (safe migration)
+            $conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS city VARCHAR(100) DEFAULT '' AFTER phone");
+            $stmt = $conn->prepare("INSERT INTO users (name, email, phone, city, password) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param('sssss', $name, $email, $phone, $city_reg, $hashed);
             if ($stmt->execute()) {
                 $success = 'Account created successfully! You can now login.';
             } else {
@@ -79,6 +83,18 @@ include 'includes/header.php';
                 <div class="input-group">
                     <span class="input-icon">✉️</span>
                     <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">📍 City</label>
+                <div class="input-group">
+                    <span class="input-icon">📍</span>
+                    <select class="form-control" name="city" id="city" style="background:var(--bg-dark);color:var(--text-light);border:none;padding-left:0;">
+                        <option value="">-- Select Your City --</option>
+                        <?php foreach(BYS_CITIES as $c): ?>
+                        <option value="<?php echo $c; ?>" <?php echo (($_POST['city'] ?? '') === $c) ? 'selected' : ''; ?>><?php echo $c; ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
             <div class="form-group">
