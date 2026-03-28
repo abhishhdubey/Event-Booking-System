@@ -60,7 +60,7 @@ A full-stack **Event & Movie Booking System** built with PHP and MySQL — inspi
 ## 📁 Project Structure
 
 ```
-bookmyshow-clone/
+BookYourShow/
 ├── admin/                  # Admin panel pages
 │   ├── manage-movies.php
 │   ├── manage-events.php
@@ -78,7 +78,7 @@ bookmyshow-clone/
 ├── css/
 │   └── style.css           # Global styles (dark theme)
 ├── database/
-│   └── bookmyshow.sql      # Main database schema + seed data
+│   └── BookYourShow.sql      # Main database schema + seed data
 ├── includes/
 │   ├── header.php
 │   ├── footer.php
@@ -120,14 +120,14 @@ cd Event-Booking-System
 
 **2. Move to XAMPP's htdocs**
 ```
-Place the folder inside: C:/xampp/htdocs/bookmyshow-clone/
+Place the folder inside: C:/xampp/htdocs/BookYourShow/
 ```
 
 **3. Import the database**
 - Start XAMPP → Start Apache & MySQL
 - Open [phpMyAdmin](http://localhost/phpmyadmin)
-- Create a new database: `bookmyshow_clone`
-- Import `database/bookmyshow.sql`
+- Create a new database: `BookYourShow`
+- Import `database/BookYourShow.sql`
 
 **4. Configure the app**
 
@@ -136,7 +136,7 @@ Edit `config/config.php`:
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');          // Your MySQL password
-define('DB_NAME', 'bookmyshow_clone');
+define('DB_NAME', 'BookYourShow');
 ```
 
 **5. (Optional) Configure APIs**
@@ -148,7 +148,7 @@ In `config/config.php`, add your keys for:
 
 **6. Run the app**
 ```
-http://localhost/bookmyshow-clone/
+http://localhost/BookYourShow/
 ```
 
 ---

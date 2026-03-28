@@ -4,8 +4,8 @@
 -- No separate migration needed.
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS bookmyshow_clone;
-USE bookmyshow_clone;
+CREATE DATABASE IF NOT EXISTS BookYourShow;
+USE BookYourShow;
 
 -- ============================================================
 -- TABLES

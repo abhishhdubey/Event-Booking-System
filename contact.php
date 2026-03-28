@@ -46,7 +46,7 @@ include 'includes/header.php';
         <!-- Contact Info -->
         <div>
             <h3 style="margin-bottom:20px;">Get in Touch</h3>
-            <?php $info = [['📍','Our Address','123 Entertainment Hub, Mumbai, Maharashtra 400001'],['📧','Email Us','support@bookmyshow-clone.com'],['📞','Call Us','+91 98765 43210'],['🕐','Working Hours','Mon - Sat: 9:00 AM - 6:00 PM']]; foreach($info as $item): ?>
+            <?php $info = [['📍','Our Address','123 Entertainment Hub, Mumbai, Maharashtra 400001'],['📧','Email Us','support@BookYourShow.com'],['📞','Call Us','+91 98765 43210'],['🕐','Working Hours','Mon - Sat: 9:00 AM - 6:00 PM']]; foreach($info as $item): ?>
             <div style="display:flex;gap:16px;margin-bottom:24px;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);">
                 <div style="font-size:1.8rem;"><?php echo $item[0]; ?></div>
                 <div><strong><?php echo $item[1]; ?></strong><p style="color:var(--text-muted);font-size:0.9rem;margin-top:4px;"><?php echo $item[2]; ?></p></div>
