@@ -32,12 +32,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['add_event'])) {
     $price    = floatval($_POST['ticket_price']);
     $seats    = (int)($_POST['total_seats'] ?? 500);
     $ecity    = $conn->real_escape_string(trim($_POST['event_city'] ?? ''));
+    $cat      = $conn->real_escape_string(trim($_POST['category'] ?? 'Other'));
     $ev_img   = uploadImg('poster','assets/images/events/','poster');        // stored in event_image
     $banner   = uploadImg('banner_image','assets/images/events/','banner');
     // Combine venue name + location
     $fullLoc  = $conn->real_escape_string($venue_nm . ($loc ? ', ' . $loc : ''));
-    $stmt = $conn->prepare("INSERT INTO events (event_name,description,event_date,location,city,ticket_price,total_seats,event_image,banner_image,organizer_id,status) VALUES (?,?,?,?,?,?,?,?,?,?,'pending')");
-    $stmt->bind_param('sssssdissi',$name,$desc,$date,$fullLoc,$ecity,$price,$seats,$ev_img,$banner,$op_id);
+    $stmt = $conn->prepare("INSERT INTO events (event_name,category,description,event_date,location,city,ticket_price,total_seats,event_image,banner_image,organizer_id,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,'pending')");
+    $stmt->bind_param('ssssssdissi',$name,$cat,$desc,$date,$fullLoc,$ecity,$price,$seats,$ev_img,$banner,$op_id);
     $stmt->execute() ? ($msg='success:Event submitted for admin approval! 🟡') : ($msg='error:Failed to submit event. '.$conn->error);
     $tab='events';
 }
@@ -63,13 +64,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['edit_event'])) {
     $owns     = $conn->query("SELECT event_id FROM events WHERE event_id=$eid AND organizer_id=$op_id")->num_rows;
     if ($owns) {
         $ename  = $conn->real_escape_string(trim($_POST['edit_event_name']));
+        $ecat   = $conn->real_escape_string(trim($_POST['edit_category'] ?? 'Other'));
         $edesc  = $conn->real_escape_string(trim($_POST['edit_description']));
         $edate  = $conn->real_escape_string($_POST['edit_event_date']);
         $eloc   = $conn->real_escape_string(trim($_POST['edit_venue_name']) . (trim($_POST['edit_location']) ? ', ' . trim($_POST['edit_location']) : ''));
         $ecity  = $conn->real_escape_string(trim($_POST['edit_event_city']));
         $eprice = floatval($_POST['edit_ticket_price']);
         $eseats = (int)($_POST['edit_total_seats'] ?? 500);
-        $sets   = "event_name='$ename', description='$edesc', event_date='$edate', location='$eloc', city='$ecity', ticket_price=$eprice, total_seats=$eseats";
+        $sets   = "event_name='$ename', category='$ecat', description='$edesc', event_date='$edate', location='$eloc', city='$ecity', ticket_price=$eprice, total_seats=$eseats";
         // Handle new images
         $ev_img = uploadImg('edit_poster','assets/images/events/','poster');
         $banner = uploadImg('edit_banner','assets/images/events/','banner');
@@ -316,8 +318,22 @@ include 'includes/header.php';
         <form method="POST" enctype="multipart/form-data">
             <div class="form-row">
                 <div class="form-group"><label class="form-label">Event Name *</label><input type="text" class="form-control" name="event_name" required></div>
-                <div class="form-group"><label class="form-label">Event Date *</label><input type="date" class="form-control" name="event_date" min="<?php echo date('Y-m-d'); ?>" required></div>
+                <div class="form-group"><label class="form-label">Category *</label>
+                    <select class="form-control" name="category" required>
+                        <option value="">Select Category</option>
+                        <option value="Comedy">Comedy</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Music">Music</option>
+                        <option value="Festivals & Fairs">Festivals &amp; Fairs</option>
+                        <option value="College Fests">College Fests</option>
+                        <option value="Workshops">Workshops</option>
+                        <option value="Parties">Parties</option>
+                        <option value="Gaming & Esports">Gaming &amp; Esports</option>
+                    </select>
+                </div>
             </div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">Event Date *</label><input type="date" class="form-control" name="event_date" min="<?php echo date('Y-m-d'); ?>" required></div>
             <div class="form-row">
                 <div class="form-group"><label class="form-label">City *</label>
                     <select class="form-control select2-city" name="event_city" required><option value="">Select City</option><?php foreach($dashCities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?></select>
@@ -346,7 +362,7 @@ include 'includes/header.php';
         <p style="text-align:center;padding:30px;color:var(--text-muted);">No events yet.</p>
         <?php else: ?>
         <table>
-            <thead><tr><th>Event</th><th>City</th><th>Date</th><th>Price</th><th>Seats</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Event</th><th>Category</th><th>City</th><th>Date</th><th>Price</th><th>Seats</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
             <?php $events->data_seek(0); while($ev=$events->fetch_assoc()):
                 $s=$ev['status']??'pending';
@@ -354,6 +370,7 @@ include 'includes/header.php';
             ?>
             <tr>
                 <td><div style="font-weight:600;"><?php echo htmlspecialchars($ev['event_name']); ?></div><div style="font-size:.8rem;color:var(--text-muted);">📍 <?php echo htmlspecialchars($ev['location']); ?></div></td>
+                <td><span style="font-size:.8rem;background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:4px;"><?php echo htmlspecialchars($ev['category']??'Other'); ?></span></td>
                 <td><?php echo htmlspecialchars($ev['city']??'—'); ?></td>
                 <td><?php echo date('d M Y',strtotime($ev['event_date'])); ?></td>
                 <td style="font-weight:600;color:var(--primary);">₹<?php echo number_format($ev['ticket_price'],0); ?></td>
@@ -363,6 +380,7 @@ include 'includes/header.php';
                     <button type="button" class="btn btn-sm btn-primary edit-event-btn"
                         data-id="<?php echo $ev['event_id']; ?>"
                         data-name="<?php echo htmlspecialchars($ev['event_name'], ENT_QUOTES); ?>"
+                        data-cat="<?php echo htmlspecialchars($ev['category']??'Other', ENT_QUOTES); ?>"
                         data-desc="<?php echo htmlspecialchars($ev['description']??'', ENT_QUOTES); ?>"
                         data-date="<?php echo $ev['event_date']; ?>"
                         data-city="<?php echo htmlspecialchars($ev['city']??'', ENT_QUOTES); ?>"
@@ -615,6 +633,21 @@ include 'includes/header.php';
             <input type="hidden" name="edit_event_id" id="editEventId">
             <div class="form-row">
                 <div class="form-group"><label class="form-label">Event Name *</label><input type="text" class="form-control" name="edit_event_name" id="editEvName" required></div>
+                <div class="form-group"><label class="form-label">Category *</label>
+                    <select class="form-control" name="edit_category" id="editEvCat" required>
+                        <option value="">Select Category</option>
+                        <option value="Comedy">Comedy</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Music">Music</option>
+                        <option value="Festivals & Fairs">Festivals &amp; Fairs</option>
+                        <option value="College Fests">College Fests</option>
+                        <option value="Workshops">Workshops</option>
+                        <option value="Parties">Parties</option>
+                        <option value="Gaming & Esports">Gaming &amp; Esports</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
                 <div class="form-group"><label class="form-label">Event Date *</label><input type="date" class="form-control" name="edit_event_date" id="editEvDate" required></div>
             </div>
             <div class="form-row">
@@ -666,14 +699,15 @@ document.addEventListener('click', function(e) {
     if (!btn) return;
     var d = btn.dataset;
     openEditEventModal(
-        d.id, d.name, d.desc, d.date, d.city, d.location,
+        d.id, d.name, d.cat, d.desc, d.date, d.city, d.location,
         parseFloat(d.price), parseInt(d.seats)
     );
 });
 
-function openEditEventModal(id, name, desc, date, city, location, price, seats) {
+function openEditEventModal(id, name, cat, desc, date, city, location, price, seats) {
     document.getElementById('editEventId').value    = id;
     document.getElementById('editEvName').value     = name;
+    document.getElementById('editEvCat').value      = cat;
     document.getElementById('editEvDesc').value     = desc;
     document.getElementById('editEvDate').value     = date;
     document.getElementById('editEvPrice').value    = price;

@@ -62,7 +62,10 @@ $posterUrl  = $hasPoster ? BASE_URL . 'assets/images/events/' . htmlspecialchars
         <div>
             <div>
         <?php endif; ?>
-                <span class="badge badge-info" style="margin-bottom:14px;display:inline-block;backdrop-filter:blur(6px);">Live Event</span>
+                <div style="display:flex; gap:8px; margin-bottom:14px;">
+                    <span class="badge badge-info" style="display:inline-block;backdrop-filter:blur(6px);">Live Event</span>
+                    <span class="badge" style="display:inline-block;backdrop-filter:blur(6px);background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;"><?php echo htmlspecialchars($event['category'] ?? 'Other'); ?></span>
+                </div>
                 <h1 style="font-size:2.6rem;font-weight:800;margin-bottom:16px;text-shadow:0 2px 12px rgba(0,0,0,0.8);line-height:1.2;"><?php echo htmlspecialchars($event['event_name']); ?></h1>
                 <div style="display:flex;gap:20px;flex-wrap:wrap;color:rgba(255,255,255,0.85);margin-bottom:18px;font-size:0.95rem;">
                     <span style="text-shadow:0 1px 4px rgba(0,0,0,0.8);">📅 <?php echo date('D, d M Y', strtotime($event['event_date'])); ?></span>

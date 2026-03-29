@@ -51,7 +51,7 @@ $cities = $_active_cities;
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="BookYourShow Clone - Book movie tickets, event tickets online. Easy, fast and secure booking.">
 <title><?php echo htmlspecialchars($pageTitle); ?></title>
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>css/style.css?v=3">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>css/style.css?v=4">
 <link rel="icon" type="image/x-icon" href="<?php echo BASE_URL; ?>images/favicon.ico">
 </head>
 <body>

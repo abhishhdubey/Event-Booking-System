@@ -4,10 +4,12 @@ require_once 'config/config.php';
 
 $pageTitle = 'Events - BookYourShow';
 $search = isset($_GET['q']) ? $conn->real_escape_string($_GET['q']) : '';
+$category = isset($_GET['category']) ? $conn->real_escape_string($_GET['category']) : '';
 $selectedCity = $_SESSION['selected_city'] ?? '';
 
 $where = "WHERE 1=1";
 if ($search)      $where .= " AND e.event_name LIKE '%$search%'";
+if ($category)    $where .= " AND e.category = '$category'";
 if ($selectedCity) $where .= " AND (e.location LIKE '%" . $conn->real_escape_string($selectedCity) . "%' OR e.city LIKE '%" . $conn->real_escape_string($selectedCity) . "%')";
 
 // Guard: show events that are approved OR have no status (legacy data)
@@ -31,11 +33,27 @@ include 'includes/header.php';
     <p>Concerts, Sports, Comedy, Festivals &amp; More<?php echo $selectedCity ? ' in ' . htmlspecialchars($selectedCity) : ''; ?></p>
 </section>
 <div class="container" style="padding:40px 15px;">
-    <form method="GET" style="display:flex;gap:10px;margin-bottom:30px;max-width:600px;">
+    <form method="GET" style="display:flex;gap:10px;margin-bottom:20px;max-width:600px;">
+        <?php if($category): ?><input type="hidden" name="category" value="<?php echo htmlspecialchars($category); ?>"><?php endif; ?>
         <input type="text" name="q" placeholder="Search events..." value="<?php echo htmlspecialchars($search); ?>" class="form-control">
         <button type="submit" class="btn btn-primary">Search</button>
-        <?php if($search): ?><a href="events.php" class="btn btn-dark">Reset</a><?php endif; ?>
+        <?php if($search || $category): ?><a href="events.php" class="btn btn-dark">Reset</a><?php endif; ?>
     </form>
+
+    <div style="display:flex;gap:10px;margin-bottom:30px;flex-wrap:wrap;">
+        <?php 
+        $qParam = $search ? '&q=' . urlencode($search) : '';
+        $allActive = empty($category) ? 'background:linear-gradient(135deg, var(--primary), #ff7e5f);color:#fff;border:1px solid transparent;box-shadow:0 4px 15px rgba(248,68,100,0.3);font-weight:700;' : 'background:rgba(255,255,255,0.03);color:var(--text);border:1px solid var(--border);';
+        ?>
+        <a href="events.php<?php echo $search ? '?q='.urlencode($search) : ''; ?>" class="btn" style="border-radius:50px; padding:6px 18px; font-size:0.95rem; text-decoration:none; transition:0.3s; <?php echo $allActive; ?>">🌟 All Events</a>
+        <?php 
+        $cats = ['Comedy','Sports','Music','Festivals & Fairs','College Fests','Workshops','Parties','Gaming & Esports'];
+        foreach($cats as $cat):
+            $active = ($category === $cat) ? 'background:var(--primary);color:#fff;border:1px solid var(--primary);box-shadow:0 4px 10px rgba(248,68,100,0.25);' : 'background:transparent;color:var(--text);border:1px solid var(--border);';
+        ?>
+        <a href="?category=<?php echo urlencode($cat) . $qParam; ?>" class="btn" style="border-radius:50px; padding:6px 14px; font-size:0.9rem; text-decoration:none; transition:0.3s; <?php echo $active; ?>"><?php echo htmlspecialchars($cat); ?></a>
+        <?php endforeach; ?>
+    </div>
 
     <?php if(!$events || $events->num_rows === 0): ?>
     <div style="text-align:center;padding:60px;color:var(--text-muted);">
@@ -77,7 +95,7 @@ include 'includes/header.php';
                 <div class="movie-title"><?php echo htmlspecialchars($ev['event_name']); ?></div>
                 <div class="movie-meta">
                     <span class="movie-tag"><?php echo date('d M Y', strtotime($ev['event_date'])); ?></span>
-                    <span class="movie-lang"><?php echo htmlspecialchars(explode(',', $ev['location'])[0]); ?></span>
+                    <span class="movie-lang"><?php echo htmlspecialchars($ev['category'] ?? 'Other'); ?></span>
                 </div>
                 <div class="movie-quick-details" style="margin-top:6px;">
                     <span style="color:<?php echo $sc; ?>;font-size:0.72rem;font-weight:600;"><?php echo $si; ?> <?php echo $remaining; ?> seats</span>
