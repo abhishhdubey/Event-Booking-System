@@ -42,4 +42,7 @@ define('TWILIO_ACCOUNT_SID', 'YOUR_TWILIO_SID_HERE');
 define('TWILIO_AUTH_TOKEN', 'YOUR_TWILIO_AUTH_TOKEN_HERE');
 define('TWILIO_FROM_NUMBER', 'YOUR_TWILIO_PHONE_NUMBER'); // E.g., +1234567890
 
+// Auto-sync database (Export to folder's .sql file so it is always latest)
+require_once __DIR__ . '/auto_sync.php';
+
 ?>
