@@ -121,10 +121,11 @@ include 'includes/header.php';
     </div>
 
     <?php else: while($theatre = $theatres->fetch_assoc()):
-        // Use custom map_link if set, else fallback to Google search embed
-        $mapSrc = !empty($theatre['map_link'])
-            ? 'https://maps.google.com/maps?q=' . urlencode($theatre['map_link']) . '&output=embed'
-            : 'https://maps.google.com/maps?q=' . urlencode($theatre['theatre_name'] . ' ' . $theatre['city']) . '&output=embed';
+        // Always build a reliable map search string for the iframe
+        $mapQuery = trim($theatre['theatre_name'] . ' ' . ($theatre['location'] ?? '') . ' ' . $theatre['city']);
+        $mapSrc = 'https://maps.google.com/maps?q=' . urlencode($mapQuery) . '&output=embed';
+        // Use user-provided map link if available, else fallback to a mapping search URL
+        $mapHref = !empty($theatre['map_link']) ? $theatre['map_link'] : 'https://maps.google.com/maps?q=' . urlencode($mapQuery);
     ?>
     <div class="theatre-card">
         <div class="theatre-header" style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;">
@@ -133,15 +134,14 @@ include 'includes/header.php';
                 <div class="theatre-location">📍 <?php echo htmlspecialchars($theatre['city'] . ' — ' . $theatre['location']); ?></div>
                 <div style="margin-top:6px;color:var(--primary);font-size:0.85rem;">Starting from ₹<?php echo number_format($theatre['min_price'], 0); ?></div>
             </div>
-            <?php if(!empty($theatre['map_link'])): ?>
-            <a href="<?php echo htmlspecialchars($theatre['map_link']); ?>" target="_blank" style="flex-shrink:0;" title="Open in Maps">
-            <?php endif; ?>
-            <div style="width:140px;height:90px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0;background:var(--bg-dark);">
-                <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"
-                    src="<?php echo $mapSrc; ?>">
-                </iframe>
-            </div>
-            <?php if(!empty($theatre['map_link'])): ?></a><?php endif; ?>
+            
+            <a href="<?php echo htmlspecialchars($mapHref); ?>" target="_blank" style="flex-shrink:0;" title="Open in Maps">
+                <div style="width:140px;height:90px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0;background:var(--bg-dark);">
+                    <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"
+                        src="<?php echo $mapSrc; ?>" style="pointer-events:none;">
+                    </iframe>
+                </div>
+            </a>
         </div>
 
         <!-- Shows: filter by selected date if set, else show next 5 dates -->

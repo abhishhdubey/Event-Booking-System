@@ -334,6 +334,7 @@ include 'includes/header.php';
             </div>
             <div class="form-row">
                 <div class="form-group"><label class="form-label">Event Date *</label><input type="date" class="form-control" name="event_date" min="<?php echo date('Y-m-d'); ?>" required></div>
+            </div>
             <div class="form-row">
                 <div class="form-group"><label class="form-label">City *</label>
                     <select class="form-control select2-city" name="event_city" required><option value="">Select City</option><?php foreach($dashCities as $c): ?><option value="<?php echo $c; ?>"><?php echo $c; ?></option><?php endforeach; ?></select>
